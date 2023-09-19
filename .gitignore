@@ -3,3 +3,7 @@
 # Logfiles
 *.jlog
 *.clef
+
+# Filesystem
+.DS_Store
+Thumbs.db
