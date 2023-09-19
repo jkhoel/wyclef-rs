@@ -1,5 +1,55 @@
-use std::fs;
+use std::{fmt, fs};
 use serde_json::{Value};
+use regex::Regex;
+use colored::Colorize;
+
+/// # Log levels, based on Serilog levels
+#[derive(Debug)]
+pub enum Level {
+    Verbose,
+    Debug,
+    Information,
+    Warning,
+    Error,
+    Fatal,
+}
+
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let level = match self {
+            Level::Verbose => "Verbose",
+            Level::Debug => "Debug",
+            Level::Information => "Information",
+            Level::Warning => "Warning",
+            Level::Error => "Error",
+            Level::Fatal => "Fatal",
+        };
+
+        write!(f, "{}", level)
+    }
+}
+
+/// # A log event
+///
+/// ## From the CLEF spec:
+/// @t Timestamp An ISO 8601 timestamp
+/// @m Message A fully-rendered message describing the event
+/// @mt Message template Alternative to Message; specifies a message template over the event’s properties that provides for rendering into a textual description of the event
+/// @l Level An implementation-specific level or severity identifier (string or number) Absence implies “informational”
+/// @x Exception A language-dependent error representation potentially including backtrace
+/// @i Event id An implementation specific event id, identifying the type of the event (string or number)
+/// @r Renderings If @mt includes tokens with programming-language-specific formatting, an array of pre-rendered values for each such token	May be omitted; if present, the count of renderings must match the count of formatted tokens exactly
+///
+#[derive(Debug)]
+pub struct ClefEvent {
+    pub timestamp: String,
+    pub message: String,
+    pub template: String,
+    pub level: Level,
+    pub exception: String,
+    pub event_id: String,
+    pub renderings: Vec<Rendering>,
+}
 
 #[derive(Debug)]
 pub struct Rendering {
@@ -7,31 +57,9 @@ pub struct Rendering {
     pub value: String,
 }
 
-/// # A log event
-///
-/// ## From the CLEF spec:
-/// @t	Timestamp	An ISO 8601 timestamp	Yes
-/// @m	Message	A fully-rendered message describing the event
-/// @mt	Message template	Alternative to Message; specifies a message template over the event’s properties that provides for rendering into a textual description of the event
-/// @l	Level	An implementation-specific level or severity identifier (string or number)	Absence implies “informational”
-/// @x	Exception	A language-dependent error representation potentially including backtrace
-/// @i	Event id	An implementation specific event id, identifying the type of the event (string or number)
-/// @r	Renderings	If @mt includes tokens with programming-language-specific formatting, an array of pre-rendered values for each such token	May be omitted; if present, the count of renderings must match the count of formatted tokens exactly
-///
-#[derive(Debug)]
-pub struct ClefEvent {
-    pub timestamp: String,
-    pub message: String,
-    pub template: String,
-    pub level: String,
-    pub exception: String,
-    pub event_id: String,
-    pub renderings: Vec<Rendering>,
-}
-
 impl ClefEvent {
     pub fn new(event: &str) -> ClefEvent {
-        let event_as_json: Value = serde_json::from_str(&event).expect("Error occurred when parsing event!");
+        let event_as_json: Value = serde_json::from_str(event).expect("Error occurred when parsing event!");
 
         // Extract all keys from event_as_json that are not in the ClefEvent struct, as these will then be renderings
         let rendering_keys = event_as_json.as_object().unwrap().keys().filter(|key| {
@@ -42,11 +70,34 @@ impl ClefEvent {
             timestamp : event_as_json["@t"].to_string(),
             message : event_as_json["@m"].to_string(),
             template : event_as_json["@mt"].to_string(),
-            level : event_as_json["@l"].to_string(),
+            level : ClefEvent::get_level( &event_as_json["@l"].to_string()),
             exception : event_as_json["@x"].to_string(),
             event_id : event_as_json["@i"].to_string(),
             renderings: rendering_keys.iter().map(|key| Rendering { key: key.to_string(), value: event_as_json[key].to_string() } ).collect(),
 
+        }
+    }
+
+    fn get_level(level: &String) -> Level {
+        // Remove any characters that are not alphanumeric or numbers
+        let filtered_level = Regex::new(r"[^A-Za-z0-9]").unwrap().replace_all(level, "").to_string().to_lowercase();
+
+        match filtered_level.as_str() {
+            "verbose" => Level::Verbose,
+            "debug" => Level::Debug,
+            "information" => Level::Information,
+            "warning" => Level::Warning,
+            "error" => Level::Error,
+            "fatal" => Level::Fatal,
+
+            "1" => Level::Verbose,
+            "2" => Level::Debug,
+            "3" => Level::Information,
+            "4" => Level::Warning,
+            "5" => Level::Error,
+            "6" => Level::Fatal,
+
+            _ => Level::Information,
         }
     }
 }
@@ -85,7 +136,16 @@ impl CompactLogEventsFormatFile {
                 message = message.replace(&bracketed_object, &rendering.value);
             }
 
-            println!("{}: {}", event.timestamp, message);
+            let formatted_message = format!("{}: [{}] {}", event.timestamp.replace('"', ""), event.level, message);
+
+            match event.level {
+                Level::Verbose => println!("{}", formatted_message.white()),
+                Level::Debug => println!("{}", formatted_message.cyan()),
+                Level::Information => println!("{}", formatted_message.green()),
+                Level::Warning => println!("{}", formatted_message.yellow()),
+                Level::Error => println!("{}", formatted_message.red()),
+                Level::Fatal => println!("{}", formatted_message.red().bold()),
+            }
         });
     }
 }

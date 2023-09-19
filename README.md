@@ -9,6 +9,15 @@ Assuming you have some CLEF log file, you can output the contents to the termina
 wyclef somefile.log
 ```
 
-## Limitations
+## Note on Logging levels
 
-While the CLEF spec states that the level property can be both a string or a number, Wyclef only currently supports case-insensitive strings of levels `Error`, `Warning` and `Verbose`. All other types will default to `Information`.
+The CLEF spec states that the level property can be both strings and numbers. In order to support coloring of the output, Wyclef currently supports the following case-insensitive strings for levels, or the corresponding number value:
+
+| String Level | Number Level | Color      |
+|--------------|--------------|------------|
+| Verbose      | 1            | White      |
+| Debug        | 2            | Cyan       |
+| Information  | 3            | Green      |
+| Warning      | 4            | Yellow     |
+| Error        | 5            | Red        |
+| Fatal        | 6            | Red + Bold |

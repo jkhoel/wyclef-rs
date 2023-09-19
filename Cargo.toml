@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 colored = "2.0.4"
+regex = "1.9.5"
 serde_json = { version = "1.0.107", features = [] }
