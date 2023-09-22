@@ -1,7 +1,7 @@
-use std::{fmt, fs};
-use serde_json::{Value};
-use regex::Regex;
 use colored::Colorize;
+use regex::Regex;
+use serde_json::Value;
+use std::{fmt, fs};
 
 /// # Log levels, based on Serilog levels
 #[derive(Debug)]
@@ -17,12 +17,12 @@ pub enum Level {
 impl fmt::Display for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let level = match self {
-            Level::Verbose => "Verbose",
-            Level::Debug => "Debug",
-            Level::Information => "Information",
-            Level::Warning => "Warning",
-            Level::Error => "Error",
-            Level::Fatal => "Fatal",
+            Level::Verbose => "VERBOSE",
+            Level::Debug => "DEBUG",
+            Level::Information => "INFORMATION",
+            Level::Warning => "WARNING",
+            Level::Error => "ERROR",
+            Level::Fatal => "FATAL",
         };
 
         write!(f, "{}", level)
@@ -57,30 +57,52 @@ pub struct Rendering {
     pub value: String,
 }
 
+impl fmt::Display for Rendering {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.key, self.value)
+    }
+}
+
 impl ClefEvent {
     pub fn new(event: &str) -> ClefEvent {
-        let event_as_json: Value = serde_json::from_str(event).expect("Error occurred when parsing event!");
-
-        // Extract all keys from event_as_json that are not in the ClefEvent struct, as these will then be renderings
-        let rendering_keys = event_as_json.as_object().unwrap().keys().filter(|key| {
-            !matches!(key.as_str(), "@t" | "@m" | "@mt" | "@l" | "@x" | "@i")
-        }).collect::<Vec<&String>>();
+        let event_as_json: Value =
+            serde_json::from_str(event).expect("Error occurred when parsing event!");
 
         ClefEvent {
-            timestamp : event_as_json["@t"].to_string(),
-            message : event_as_json["@m"].to_string(),
-            template : event_as_json["@mt"].to_string(),
-            level : ClefEvent::get_level( &event_as_json["@l"].to_string()),
-            exception : event_as_json["@x"].to_string(),
-            event_id : event_as_json["@i"].to_string(),
-            renderings: rendering_keys.iter().map(|key| Rendering { key: key.to_string(), value: event_as_json[key].to_string() } ).collect(),
-
+            timestamp: event_as_json["@t"].to_string(),
+            message: event_as_json["@m"].to_string(),
+            template: event_as_json["@mt"].to_string(),
+            exception: event_as_json["@x"].to_string(),
+            event_id: event_as_json["@i"].to_string(),
+            level: ClefEvent::get_level(&event_as_json["@l"].to_string()),
+            renderings: ClefEvent::get_renderings(&event_as_json),
         }
     }
 
-    fn get_level(level: &String) -> Level {
-        // Remove any characters that are not alphanumeric or numbers
-        let filtered_level = Regex::new(r"[^A-Za-z0-9]").unwrap().replace_all(level, "").to_string().to_lowercase();
+    /// Extracts all keys from the parsed (JSON) event log that are not in the ClefEvent struct, as these will then be renderings
+    fn get_renderings(event_as_json: &Value) -> Vec<Rendering> {
+        let rendering_keys = event_as_json
+            .as_object()
+            .unwrap()
+            .keys()
+            .filter(|key| !matches!(key.as_str(), "@t" | "@m" | "@mt" | "@l" | "@x" | "@i"))
+            .collect::<Vec<&String>>();
+
+        rendering_keys
+            .iter()
+            .map(|key| Rendering {
+                key: key.to_string(),
+                value: event_as_json[key].to_string(),
+            })
+            .collect()
+    }
+
+    fn get_level(level: &str) -> Level {
+        let filtered_level = Regex::new(r"[^A-Za-z0-9]")
+            .unwrap()
+            .replace_all(level, "")
+            .to_string()
+            .to_lowercase();
 
         match filtered_level.as_str() {
             "verbose" => Level::Verbose,
@@ -112,9 +134,10 @@ impl CompactLogEventsFormatFile {
         let file_content = fs::read_to_string(file_path)?;
         let file_events: Vec<String> = file_content.lines().map(|line| line.to_string()).collect();
 
-        let events: Vec<ClefEvent> = file_events.iter().map(|event| {
-            ClefEvent::new(event)
-        }).collect();
+        let events: Vec<ClefEvent> = file_events
+            .iter()
+            .map(|event| ClefEvent::new(event))
+            .collect();
 
         Ok(CompactLogEventsFormatFile { events })
     }
@@ -136,7 +159,12 @@ impl CompactLogEventsFormatFile {
                 message = message.replace(&bracketed_object, &rendering.value);
             }
 
-            let formatted_message = format!("{}: [{}] {}", event.timestamp.replace('"', ""), event.level, message);
+            let formatted_message = format!(
+                "{}: [{}] {}",
+                event.timestamp.replace('"', ""),
+                event.level,
+                message
+            );
 
             match event.level {
                 Level::Verbose => println!("{}", formatted_message.white()),
