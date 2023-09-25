@@ -1,28 +1,44 @@
+use ratatui::{backend::CrosstermBackend, Terminal};
 use std::env;
-use std::io;
+use std::io::{stdout, Error, ErrorKind};
 
 struct ProgramArguments {
     file_path: String,
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), Error> {
     let args = &env::args().collect::<Vec<String>>();
     let program_args = get_program_args(args);
 
-    match program_args {
-        Ok(program_args) => print_eventlog(&program_args),
+    let execution_result = match program_args {
+        Ok(program_args) => run_terminal_with_args(&program_args),
         Err(error) => {
-            panic!("{}", error)
+            Err(Error::new(ErrorKind::Other, error))
         }
+    };
+
+    match execution_result.is_err() {
+        true => {
+            eprintln!("Wyclef encountered an error: {}", execution_result.err().unwrap());
+            Ok(())
+        },
+        false => Ok(()),
     }
+}
+
+fn run_terminal_with_args(_program_args: &ProgramArguments) -> Result<(), Error> {
+    let stdout = stdout();
+    let backend = CrosstermBackend::new(stdout);
+
+    let mut _terminal = Terminal::new(backend)?;
 
     Ok(())
 }
 
-fn print_eventlog(program_args: &ProgramArguments) {
+/*fn run_terminal_with_args(program_args: &ProgramArguments) {
     let eventlog = wyclef_rs::CompactLogEventsFormatFile::new(&program_args.file_path).unwrap();
     eventlog.print();
-}
+}*/
 
 fn get_program_args(args: &[String]) -> Result<ProgramArguments, &str> {
     let file_path = resolve_file_path_from_args(args);
@@ -40,9 +56,13 @@ fn create_program_args(file_path: &str) -> ProgramArguments {
 }
 
 fn resolve_file_path_from_args(args: &[String]) -> Result<&String, &str> {
-    match &args[1].is_empty() {
-        true => Err("Please provide a file path!"),
-        false => Ok(&args[1]),
+    let error_message = "Please provide a path to a log file!";
+    match args.len() > 1 {
+        true => match args[1].is_empty() {
+            true => Err(error_message),
+            false => Ok(&args[1]),
+        },
+        false => Err(error_message),
     }
 }
 
@@ -51,8 +71,8 @@ mod tests {
     use crate::resolve_file_path_from_args;
 
     #[test]
-    fn throws_error_when_resolving_file_path_from_args_with_empty_string() {
-        let args = vec!["not-used-for-this-test".to_string(), "".to_string()];
+    fn throws_error_when_file_name_args_is_missing() {
+        let args = vec!["not-used-for-this-test".to_string()];
         let result = resolve_file_path_from_args(&args);
         assert!(result.is_err());
     }
