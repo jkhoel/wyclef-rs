@@ -29,7 +29,8 @@ fn setup_terminal() -> anyhow::Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode().context("failed to enable raw mode")?;
 
     let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).context("unable to enter alternate screen")?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
+        .context("unable to enter alternate screen")?;
     Terminal::new(CrosstermBackend::new(stdout)).context("could not create terminal")
 }
 
@@ -40,7 +41,7 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> anyhow:
         LeaveAlternateScreen,
         DisableMouseCapture
     )
-        .context("unable to switch to main screen")?;
+    .context("unable to switch to main screen")?;
     terminal.show_cursor().context("unable to show cursor")
 }
 
@@ -81,7 +82,9 @@ fn run_terminal_with_args(program_args: &ProgramArguments) -> anyhow::Result<()>
 // TODO: End of terminal commands
 
 fn get_program_args(args: &[String]) -> anyhow::Result<ProgramArguments> {
-    let file_path = (&args.len() > &1).then(|| &args[1]).context("Please provide a path to a log file!")?;
+    let file_path = (args.len() > 1)
+        .then(|| &args[1])
+        .context("Please provide a path to a log file!")?;
 
     Ok(ProgramArguments {
         file_path: file_path.to_string(),
