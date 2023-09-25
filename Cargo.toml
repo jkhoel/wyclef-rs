@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 colored = "2.0.4"
+ratatui = { version = "0.23.0", features = ["all-widgets"] }
 regex = "1.9.5"
 serde_json = { version = "1.0.107", features = [] }

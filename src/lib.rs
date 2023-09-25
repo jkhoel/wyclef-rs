@@ -38,7 +38,7 @@ impl fmt::Display for Level {
 /// @l Level An implementation-specific level or severity identifier (string or number) Absence implies “informational”
 /// @x Exception A language-dependent error representation potentially including backtrace
 /// @i Event id An implementation specific event id, identifying the type of the event (string or number)
-/// @r Renderings If @mt includes tokens with programming-language-specific formatting, an array of pre-rendered values for each such token	May be omitted; if present, the count of renderings must match the count of formatted tokens exactly
+/// @r Renderings If @mt includes tokens with programming-language-specific formatting, an array of pre-rendered values for each such token. May be omitted; if present, the count of renderings must match the count of formatted tokens exactly
 ///
 #[derive(Debug)]
 pub struct ClefEvent {
