@@ -1,79 +1,101 @@
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{backend::CrosstermBackend, style, Terminal};
 use std::env;
-use std::io::{stdout, Error, ErrorKind};
+use std::io::{stdout, Stdout};
 
+use anyhow::Context;
+
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::prelude::Style;
+use ratatui::widgets::{Block, Borders};
+
+#[derive(Debug, PartialEq)]
 struct ProgramArguments {
     file_path: String,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> anyhow::Result<()> {
     let args = &env::args().collect::<Vec<String>>();
-    let program_args = get_program_args(args);
+    let program_args = get_program_args(args).context("unable to get program arguments")?;
 
-    let execution_result = match program_args {
-        Ok(program_args) => run_terminal_with_args(&program_args),
-        Err(error) => {
-            Err(Error::new(ErrorKind::Other, error))
-        }
-    };
-
-    match execution_result.is_err() {
-        true => {
-            eprintln!("Wyclef encountered an error: {}", execution_result.err().unwrap());
-            Ok(())
-        },
-        false => Ok(()),
-    }
+    run_terminal_with_args(&program_args)
 }
 
-fn run_terminal_with_args(_program_args: &ProgramArguments) -> Result<(), Error> {
-    let stdout = stdout();
-    let backend = CrosstermBackend::new(stdout);
+// TODO: Put terminal functions in own module
+fn setup_terminal() -> anyhow::Result<Terminal<CrosstermBackend<Stdout>>> {
+    enable_raw_mode().context("failed to enable raw mode")?;
 
-    let mut _terminal = Terminal::new(backend)?;
+    let mut stdout = stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).context("unable to enter alternate screen")?;
+    Terminal::new(CrosstermBackend::new(stdout)).context("could not create terminal")
+}
+
+fn restore_terminal(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> anyhow::Result<()> {
+    disable_raw_mode().context("failed to disable raw mode")?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )
+        .context("unable to switch to main screen")?;
+    terminal.show_cursor().context("unable to show cursor")
+}
+
+fn run_terminal_with_args(program_args: &ProgramArguments) -> anyhow::Result<()> {
+    let mut terminal = setup_terminal().context("unable to set up terminal")?;
+
+    let main_title = format!("Reading File: {}", &program_args.file_path);
+
+    loop {
+        terminal.draw(|f| {
+            let size = f.size();
+            let block = Block::default()
+                .title(main_title.as_str())
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(style::Color::Cyan));
+
+            f.render_widget(block, size);
+        })?;
+
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char('q') => {
+                    restore_terminal(terminal)?;
+                    break;
+                }
+                KeyCode::Char('f') => {
+                    restore_terminal(terminal)?;
+                    break;
+                }
+                _ => {}
+            }
+        }
+    }
 
     Ok(())
 }
 
-/*fn run_terminal_with_args(program_args: &ProgramArguments) {
-    let eventlog = wyclef_rs::CompactLogEventsFormatFile::new(&program_args.file_path).unwrap();
-    eventlog.print();
-}*/
+// TODO: End of terminal commands
 
-fn get_program_args(args: &[String]) -> Result<ProgramArguments, &str> {
-    let file_path = resolve_file_path_from_args(args);
+fn get_program_args(args: &[String]) -> anyhow::Result<ProgramArguments> {
+    let file_path = (&args.len() > &1).then(|| &args[1]).context("Please provide a path to a log file!")?;
 
-    match file_path {
-        Ok(file_path) => Ok(create_program_args(file_path)),
-        Err(error) => Err(error),
-    }
-}
-
-fn create_program_args(file_path: &str) -> ProgramArguments {
-    ProgramArguments {
+    Ok(ProgramArguments {
         file_path: file_path.to_string(),
-    }
-}
-
-fn resolve_file_path_from_args(args: &[String]) -> Result<&String, &str> {
-    let error_message = "Please provide a path to a log file!";
-    match args.len() > 1 {
-        true => match args[1].is_empty() {
-            true => Err(error_message),
-            false => Ok(&args[1]),
-        },
-        false => Err(error_message),
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::resolve_file_path_from_args;
+    use crate::get_program_args;
 
     #[test]
     fn throws_error_when_file_name_args_is_missing() {
         let args = vec!["not-used-for-this-test".to_string()];
-        let result = resolve_file_path_from_args(&args);
+        let result = get_program_args(&args);
         assert!(result.is_err());
     }
 
@@ -84,17 +106,9 @@ mod tests {
             "test.jlog".to_string(),
         ];
 
-        let result = resolve_file_path_from_args(&args);
+        let result = get_program_args(&args);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "test.jlog");
-    }
-
-    #[test]
-    fn can_build_program_args() {
-        let file_path = "test.jlog";
-        let program_args = super::create_program_args(file_path);
-
-        assert_eq!(program_args.file_path, file_path);
+        assert_eq!(result.unwrap().file_path, "test.jlog");
     }
 }
