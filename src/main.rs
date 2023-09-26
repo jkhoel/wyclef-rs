@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
     let log_events =
         CompactLogEventsFormatFile::new(&app_args.file_path).context("unable to read log file")?;
 
-    let tick_rate = Duration::from_millis(1);
+    let tick_rate = Duration::from_millis(250);
 
     let mut terminal = create_terminal().context("unable to set up a terminal for the App")?;
     let app = App::new(app_args, log_events.events.iter().collect());
