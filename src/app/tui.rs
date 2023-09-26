@@ -1,5 +1,5 @@
 use anyhow::Context;
-use crossterm::event::KeyEventKind;
+use crossterm::event::{KeyEventKind, KeyModifiers};
 use crossterm::event::{self, Event, KeyCode};
 use std::time::{Duration, Instant};
 
@@ -29,8 +29,14 @@ pub fn start_tui<B: Backend>(
                     match key.code {
                         KeyCode::Char('q') => return Ok(()),
                         KeyCode::Enter => app.items.unselect(),
-                        KeyCode::Down => app.items.next(),
-                        KeyCode::Up => app.items.previous(),
+                        KeyCode::Down => match key.modifiers {
+                            KeyModifiers::SHIFT => app.items.next(10),
+                            _ => app.items.next(1),
+                        },
+                        KeyCode::Up => match key.modifiers {
+                            KeyModifiers::SHIFT => app.items.previous(10),
+                            _ => app.items.previous(1),
+                        },
                         _ => {}
                     }
                 }

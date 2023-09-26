@@ -14,13 +14,13 @@ impl<T> StatefulList<T> {
         }
     }
 
-    pub fn next(&mut self) {
+    pub fn next(&mut self, increment: usize) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.items.len() - 1 {
                     0
                 } else {
-                    i + 1
+                    i + increment
                 }
             }
             None => 0,
@@ -28,13 +28,13 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i));
     }
 
-    pub fn previous(&mut self) {
+    pub fn previous(&mut self, increment: usize) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
                     self.items.len() - 1
                 } else {
-                    i - 1
+                    i - increment
                 }
             }
             None => 0,

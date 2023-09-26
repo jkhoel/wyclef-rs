@@ -6,6 +6,23 @@ Wyclef is a lightweight [Compact Log Event Format (CLEF)](https://clef-json.org/
 
 Wyclef is a [CLI tool](https://en.wikipedia.org/wiki/Command-line_interface) that takes the path to a log file, with CLEF formatted events, as a single argument.
 
+### Keybindings
+
+| Keybinding     | Description                         |
+|----------------|-------------------------------------|
+| `q`            | Quit the program                    |
+| `Up`           | Scroll up                           |
+| `Down`         | Scroll down                         |
+| `Up + Shift`   | Scroll up by 10 lines               |
+| `Down + Shift` | Scroll down by 10 lines             |
+| `Enter`        | Go to the top of the log            |
+|                |                                     |
+| TODO:          |                                     |
+| `??`           | Go to the bottom of the log         |
+| `f`            | Toggle filtering of events by level |
+
+If you need search functionality within the window, consider using a terminal that supports it.
+
 ### Windows
 
 Build the project and store the resulting binary somewhere on your computer. You can also store it in a folder that is not part of your PATH, open your terminal and then run it by specifying the full path to the program. Example:
