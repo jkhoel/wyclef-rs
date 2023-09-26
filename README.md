@@ -8,6 +8,8 @@ Wyclef is a [CLI tool](https://en.wikipedia.org/wiki/Command-line_interface) tha
 
 ### Keybindings
 
+In addition to mouse-wheel scrolling, the following keybindings are available:
+
 | Keybinding     | Description                         |
 |----------------|-------------------------------------|
 | `q`            | Quit the program                    |
@@ -15,10 +17,11 @@ Wyclef is a [CLI tool](https://en.wikipedia.org/wiki/Command-line_interface) tha
 | `Down`         | Scroll down                         |
 | `Up + Shift`   | Scroll up by 10 lines               |
 | `Down + Shift` | Scroll down by 10 lines             |
-| `Enter`        | Go to the top of the log            |
+| `Esc`          | Unselect                            |
 |                |                                     |
 | TODO:          |                                     |
-| `??`           | Go to the bottom of the log         |
+| `Left`         | Go to the top of the log            |
+| `Right`        | Go to the bottom of the log         |
 | `f`            | Toggle filtering of events by level |
 
 If you need search functionality within the window, consider using a terminal that supports it.

@@ -1,5 +1,5 @@
 use anyhow::Context;
-use crossterm::event::{KeyEventKind, KeyModifiers};
+use crossterm::event::{KeyEventKind, KeyModifiers, MouseEventKind};
 use crossterm::event::{self, Event, KeyCode};
 use std::time::{Duration, Instant};
 
@@ -28,7 +28,9 @@ pub fn start_tui<B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Enter => app.items.unselect(),
+                        KeyCode::Esc => app.items.unselect(),
+                        KeyCode::Left => app.items.to_first(),
+                        KeyCode::Right => app.items.to_last(),
                         KeyCode::Down => match key.modifiers {
                             KeyModifiers::SHIFT => app.items.next(10),
                             _ => app.items.next(1),
@@ -39,6 +41,20 @@ pub fn start_tui<B: Backend>(
                         },
                         _ => {}
                     }
+                }
+            }
+
+            if let Event::Mouse(mouse) = event::read()? {
+                // if mouse.kind == crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left) {
+                //     app.items.previous(1)
+                // }
+
+                if mouse.kind == MouseEventKind::ScrollUp {
+                    app.items.next(1)
+                }
+
+                if mouse.kind == MouseEventKind::ScrollDown {
+                    app.items.previous(1)
                 }
             }
         }

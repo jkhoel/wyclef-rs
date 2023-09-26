@@ -42,7 +42,19 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i));
     }
 
+    pub fn select(&mut self, index: usize) {
+        self.state.select(Some(index));
+    }
+
     pub fn unselect(&mut self) {
         self.state.select(None);
+    }
+
+    pub fn to_first(&mut self) {
+        self.state.select(Some(0));
+    }
+
+    pub fn to_last(&mut self) {
+        self.state.select(Some(self.items.len() - 1));
     }
 }
